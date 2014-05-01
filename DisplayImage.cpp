@@ -5,7 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
-
+#include <algorithm>
 
 using namespace cv;
 using namespace std;
@@ -15,38 +15,139 @@ Mat fgMaskMOG;
 
 BackgroundSubtractorMOG MOG;
 int keyboard;
-
+int flagList[1000][1000]={0};
 class PointClass{
 	public:
 		int row_num;
 		int col_num;
 };
+
 class PointRange{
 	public:
+		PointRange();
 		int row_upperBound;
 		int row_lowerBound;
 
 		int col_upperBound;
 		int col_lowerBound;
-
-
 };
 
+PointRange::PointRange(){
+	row_upperBound=-1;
+	row_lowerBound=-1;
 
-PointRange findRange(PointClass startPoint){
+	col_upperBound=-1;
+	col_lowerBound=-1;
+
+}
+
+
+PointRange findRange(PointClass startPoint,int **matValue,int nRows,int nCols){
 	
+	PointRange returnRange;
 	int row_num=startPoint.row_num;
 	int col_num=startPoint.col_num;
-	
-	PointRange up=findRange()
+	cout<<"start:"<<row_num<<","<<col_num<<endl;
+	if(matValue[row_num][col_num]==255){
+		
+		PointRange rangeList[4];
+		
+		//Find the upper point
+		if(row_num>0&&flagList[row_num-1][col_num]==0)
+		{	
+			cout<<"here"<<endl;
+			flagList[row_num-1][col_num]=1;
 
+			PointClass up_point;
+			up_point.row_num=row_num-1;
+			up_point.col_num=col_num;
+			rangeList[0]=findRange(up_point,matValue,nRows,nCols);
+		}
 
+		//Find the down point
+		if(row_num<nRows&&flagList[row_num+1][col_num]==0)
+		{	
+
+			flagList[row_num+1][col_num]=1;
+
+			PointClass down_point;
+			down_point.row_num=row_num+1;
+			down_point.col_num=col_num;
+			rangeList[1]=findRange(down_point,matValue,nRows,nCols);
+		}
+
+		//Find the left point
+		if(col_num>0&&flagList[row_num][col_num-1]==0)
+		{	
+			flagList[row_num][col_num-1]=1;
+
+			PointClass left_point;
+			left_point.row_num=row_num;
+			left_point.col_num=col_num-1;
+			rangeList[2]=findRange(left_point,matValue,nRows,nCols);
+		
+		}
+		
+		//Find the right point
+		if(col_num<nCols&&flagList[row_num][col_num+1]==0)
+		{
+			flagList[row_num][col_num+1]=1;
+
+			PointClass right_point;
+			right_point.row_num=row_num;
+			right_point.col_num=col_num+1;
+			rangeList[3]=findRange(right_point,matValue,nRows,nCols);
+		
+		}
+		
+		//Determine Row upper Bound
+		vector<int> row_upperBoundList,row_lowerBoundList,col_upperBoundList,col_lowerBoundList;
+		for(int i=0;i<3;i++){
+			if(rangeList[i].row_upperBound!=-1)
+			{
+				row_upperBoundList.push_back(rangeList[i].row_upperBound);
+				row_lowerBoundList.push_back(rangeList[i].row_lowerBound);
+				
+				col_upperBoundList.push_back(rangeList[i].col_upperBound);
+				col_lowerBoundList.push_back(rangeList[i].col_lowerBound);
+			
+			}
+		
+		}
+
+		//Add own's point
+		row_upperBoundList.push_back(row_num);
+		row_lowerBoundList.push_back(row_num);
+
+		col_upperBoundList.push_back(col_num);
+		col_lowerBoundList.push_back(col_num);
+
+		
+		returnRange.row_upperBound=*max_element(row_upperBoundList.begin(),row_upperBoundList.end());
+		returnRange.row_lowerBound=*min_element(row_lowerBoundList.begin(),row_upperBoundList.end());
+
+		returnRange.col_upperBound=*max_element(col_upperBoundList.begin(),col_upperBoundList.end());
+		returnRange.col_lowerBound=*min_element(col_lowerBoundList.begin(),col_lowerBoundList.end());
+
+		return returnRange;
+		
+	}
+	else{
+		returnRange.row_upperBound=row_num;
+		returnRange.row_lowerBound=row_num;
+
+		returnRange.col_lowerBound=col_num;
+		returnRange.col_upperBound=col_num;
+		return returnRange;
+	}
 
 }
 
 
 
 void foundObject(int **matValue,int nRows,int nCols){
+	
+	//Save the point which pixel value is 255
 	vector<PointClass> pointGroup;
 
 	for(int i=0;i<nRows;i++){
@@ -61,20 +162,26 @@ void foundObject(int **matValue,int nRows,int nCols){
 			}
 		}
 	}
-
+	
 	while(pointGroup.size()!=0){
 		
 		vector<PointClass>::iterator startPoint=pointGroup.begin();
 		
 		int start_row_num=(*startPoint).row_num;
 		int start_col_num=(*startPoint).col_num;
-		while(1){
-				
+		PointClass s1;
+		s1.row_num=start_row_num;
+		s1.col_num=start_col_num;
 		
-		
-		
-		}
+		cout<<"Find Range Start"<<endl;
+		PointRange r=findRange(s1,matValue,nRows,nCols);
+		cout<<"Find Range Finish"<<endl;
+		cout<<"r_u:"<<r.row_upperBound<<endl;
+		cout<<"r_l:"<<r.row_lowerBound<<endl;
+		cout<<"c_u:"<<r.col_upperBound<<endl;
+		cout<<"c_l:"<<r.col_lowerBound<<endl;
 
+		break;
 		int min_row_num=0;
 		int max_row_num=nRows;
 		
@@ -97,14 +204,8 @@ void foundObject(int **matValue,int nRows,int nCols){
 		
 	}
 
-
-
 	cout<<"PointSize:"<<pointGroup.size()<<endl;
 	
-	
-
-
-
 
 }
 
@@ -208,7 +309,7 @@ int main(int argc, char** argv )
 	}
 	
 	
-	foundObject(maskValue,mask_nRows,mask_nCols);
+	//foundObject(maskValue,mask_nRows,mask_nCols);
 
 
 
