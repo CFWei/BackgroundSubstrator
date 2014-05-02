@@ -41,39 +41,39 @@ PointRange::PointRange(){
 
 }
 
+vector<PointRange> object;
 
-PointRange findRange(PointClass startPoint,int **matValue,int nRows,int nCols){
-	
+
+PointRange findRange(PointClass startPoint,int **matValue,int nRows,int nCols,int findNum,int direction){
+
 	PointRange returnRange;
 	int row_num=startPoint.row_num;
 	int col_num=startPoint.col_num;
-	cout<<"start:"<<row_num<<","<<col_num<<endl;
+
 	if(matValue[row_num][col_num]==255){
 		
 		PointRange rangeList[4];
 		
 		//Find the upper point
 		if(row_num>0&&flagList[row_num-1][col_num]==0)
-		{	
-			cout<<"here"<<endl;
+		{		
 			flagList[row_num-1][col_num]=1;
 
 			PointClass up_point;
 			up_point.row_num=row_num-1;
 			up_point.col_num=col_num;
-			rangeList[0]=findRange(up_point,matValue,nRows,nCols);
+			rangeList[0]=findRange(up_point,matValue,nRows,nCols,findNum,1);
 		}
 
 		//Find the down point
 		if(row_num<nRows&&flagList[row_num+1][col_num]==0)
 		{	
-
 			flagList[row_num+1][col_num]=1;
 
 			PointClass down_point;
 			down_point.row_num=row_num+1;
 			down_point.col_num=col_num;
-			rangeList[1]=findRange(down_point,matValue,nRows,nCols);
+			rangeList[1]=findRange(down_point,matValue,nRows,nCols,findNum,2);
 		}
 
 		//Find the left point
@@ -84,7 +84,7 @@ PointRange findRange(PointClass startPoint,int **matValue,int nRows,int nCols){
 			PointClass left_point;
 			left_point.row_num=row_num;
 			left_point.col_num=col_num-1;
-			rangeList[2]=findRange(left_point,matValue,nRows,nCols);
+			rangeList[2]=findRange(left_point,matValue,nRows,nCols,findNum,3);
 		
 		}
 		
@@ -96,13 +96,15 @@ PointRange findRange(PointClass startPoint,int **matValue,int nRows,int nCols){
 			PointClass right_point;
 			right_point.row_num=row_num;
 			right_point.col_num=col_num+1;
-			rangeList[3]=findRange(right_point,matValue,nRows,nCols);
+			rangeList[3]=findRange(right_point,matValue,nRows,nCols,findNum,4);
 		
 		}
 		
 		//Determine Row upper Bound
+
 		vector<int> row_upperBoundList,row_lowerBoundList,col_upperBoundList,col_lowerBoundList;
 		for(int i=0;i<3;i++){
+			
 			if(rangeList[i].row_upperBound!=-1)
 			{
 				row_upperBoundList.push_back(rangeList[i].row_upperBound);
@@ -114,6 +116,7 @@ PointRange findRange(PointClass startPoint,int **matValue,int nRows,int nCols){
 			}
 		
 		}
+		
 
 		//Add own's point
 		row_upperBoundList.push_back(row_num);
@@ -122,34 +125,56 @@ PointRange findRange(PointClass startPoint,int **matValue,int nRows,int nCols){
 		col_upperBoundList.push_back(col_num);
 		col_lowerBoundList.push_back(col_num);
 
-		
+
+
 		returnRange.row_upperBound=*max_element(row_upperBoundList.begin(),row_upperBoundList.end());
-		returnRange.row_lowerBound=*min_element(row_lowerBoundList.begin(),row_upperBoundList.end());
+
+
+		returnRange.row_lowerBound=*min_element(row_lowerBoundList.begin(),row_lowerBoundList.end());
+
+		
 
 		returnRange.col_upperBound=*max_element(col_upperBoundList.begin(),col_upperBoundList.end());
+
+
 		returnRange.col_lowerBound=*min_element(col_lowerBoundList.begin(),col_lowerBoundList.end());
+		
+
 
 		return returnRange;
 		
 	}
 	else{
+		
 		returnRange.row_upperBound=row_num;
 		returnRange.row_lowerBound=row_num;
 
 		returnRange.col_lowerBound=col_num;
 		returnRange.col_upperBound=col_num;
+
+
 		return returnRange;
+
+
+
 	}
 
 }
 
+
+void initialFlag(){
+	for(int i=0;i<1000;i++)
+		for(int j=0;j<1000;j++)
+			flagList[i][j]=0;
+
+
+}
 
 
 void foundObject(int **matValue,int nRows,int nCols){
 	
 	//Save the point which pixel value is 255
 	vector<PointClass> pointGroup;
-
 	for(int i=0;i<nRows;i++){
 		for(int j=0;j<nCols;j++){
 			if(matValue[i][j]==255){
@@ -162,7 +187,7 @@ void foundObject(int **matValue,int nRows,int nCols){
 			}
 		}
 	}
-	
+	int count =0;	
 	while(pointGroup.size()!=0){
 		
 		vector<PointClass>::iterator startPoint=pointGroup.begin();
@@ -172,22 +197,35 @@ void foundObject(int **matValue,int nRows,int nCols){
 		PointClass s1;
 		s1.row_num=start_row_num;
 		s1.col_num=start_col_num;
-		
-		cout<<"Find Range Start"<<endl;
-		PointRange r=findRange(s1,matValue,nRows,nCols);
-		cout<<"Find Range Finish"<<endl;
-		cout<<"r_u:"<<r.row_upperBound<<endl;
-		cout<<"r_l:"<<r.row_lowerBound<<endl;
-		cout<<"c_u:"<<r.col_upperBound<<endl;
-		cout<<"c_l:"<<r.col_lowerBound<<endl;
+		cout<<"Start Point:"<<start_row_num<<","<<start_col_num<<":"<<matValue[start_row_num][start_col_num]<<endl;
 
-		break;
-		int min_row_num=0;
-		int max_row_num=nRows;
+
+		initialFlag();
+		PointRange r=findRange(s1,matValue,nRows,nCols,0,0);
+
+		int min_row_num=r.row_lowerBound;
+		int max_row_num=r.row_upperBound;
 		
-		int min_col_num=0;
-		int max_col_num=nCols;
+		int min_col_num=r.col_lowerBound;
+		int max_col_num=r.col_upperBound;
 		
+
+		if(min_row_num!=max_row_num||min_col_num!=max_col_num)
+		{
+			cout<<"Find Object:"<<min_row_num<<","<<max_row_num<<";"<<min_col_num<<","<<max_col_num<<endl;
+			PointRange ob;
+			ob.row_upperBound=min_row_num;
+			ob.row_lowerBound=max_row_num;
+
+			ob.col_lowerBound=min_col_num;
+			ob.col_upperBound=max_col_num;
+			
+			object.push_back(ob);
+			count++;
+		}
+
+
+
 		for(vector<PointClass>::iterator iter=pointGroup.begin();
 				iter!=pointGroup.end();
 				++iter){
@@ -200,12 +238,13 @@ void foundObject(int **matValue,int nRows,int nCols){
 
 
 		}
-		break;
+
+
 		
 	}
 
-	cout<<"PointSize:"<<pointGroup.size()<<endl;
-	
+	//	cout<<"PointSize:"<<pointGroup.size()<<endl;
+	cout<<"Find "<<count<<" Object"<<endl;
 
 }
 
@@ -309,9 +348,7 @@ int main(int argc, char** argv )
 	}
 	
 	
-	//foundObject(maskValue,mask_nRows,mask_nCols);
-
-
+	foundObject(maskValue,mask_nRows,mask_nCols);
 
 	
 	Mat firstFrame=imread(firstFilename);
@@ -325,10 +362,21 @@ int main(int argc, char** argv )
 	cout<<"Columns:"<<firstFrame_nCols<<endl;
 	
 	
+	for(vector<PointRange>::iterator it =object.begin();it!=object.end();it++)
+	{
+		Point leftUp=Point((*it).col_lowerBound,(*it).row_lowerBound);
+		Point rightDown=Point((*it).col_upperBound,(*it).row_upperBound);
+		rectangle(lastFrame,rightDown,leftUp,Scalar(255,0,0));
+	}
+
+
+
+
 
 	imshow("Frame",lastFrame);
 	imshow("FG MASK MOG", fgMaskMOG );
-	
+
+
 	waitKey(0);
 
 
